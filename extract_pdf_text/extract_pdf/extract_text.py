@@ -24,7 +24,7 @@ from os import path
 from pathlib import Path
 from inspect import stack
 
-from src.config_project import config_project
+from extract_pdf_text.config_project import config_project
 
 from dynaconf import settings
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
