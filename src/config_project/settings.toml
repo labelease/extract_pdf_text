@@ -1,0 +1,10 @@
+[default]
+
+[default.EXTRACT_PDF_FEATURE]
+LIST_FORMAT_ACCEPTED = [".pdf", ".txt"]
+DIR_SAVE_RESULT = "extract_text_result"
+NAME_SAVE_RESULT = "result.txt"
+
+[development]
+
+[production]
