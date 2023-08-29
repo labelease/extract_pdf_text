@@ -9,8 +9,8 @@ requirements = read_requirements("requirements.txt")
 setup(
 	name='extract_pdf_text',
 	version='0.0.4',
-	description='Microservice to extract text from pdf or text files',
-	long_description='Microservice to extract text from pdf or text files',
+	description='Microservice to extract text from pdf or txt files',
+	long_description='Microservice to extract text from pdf or txt files',
 	maintainer="emersonrafaels",
     maintainer_email="emersona7x@hotmail.com",
     license="MIT License",
@@ -18,5 +18,5 @@ setup(
 	packages=find_packages(),
 	install_requires=requirements,
 	python_requires=">=3.6",
-	keywords=["Python", "pdf"],
+	keywords=["Python", "pdf", "txt"],
 )
