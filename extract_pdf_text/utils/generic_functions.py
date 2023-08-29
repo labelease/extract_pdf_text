@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Union
 from inspect import stack
 
+from dynaconf import settings
 from pydantic import validate_arguments, ValidationError
 from loguru import logger
 
@@ -93,7 +94,8 @@ def save_text_result(path_save: Union[Path, str],
         if validador:
 
             # REALIZANDO A ABERTURA DO ARQUIVO (MESMO QUE NÃO EXISTENTE)
-            with open(dir_name_save, "w", encoding="utf-8") as text_file:
+            with open(dir_name_save, "w", encoding=settings.get("ENCODING_DEFAULT",
+                                                                "utf-8")) as text_file:
 
                 try:
                     text_file.write(text)
