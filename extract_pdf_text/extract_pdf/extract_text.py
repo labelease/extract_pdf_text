@@ -1,30 +1,40 @@
 """
 
-    MICROSERVIÇO PARA EXTRAÇÃO DE TEXTOS DE PDF'S DO TIPO TEXTO.
-    O INPUT PODE SER:
+    MICROSSERVICE TO TEXT EXTRACTION FROM PDF AND TXT FILES
 
-    1) DIRETÓRIO CONTENDO VÁRIOS PDFS
-    2) DIRETÓRIO ABSOLUTO DE UM ÚNICO PDF
-    3) PDF EM FORMATO BASE64.
+    INPUT CAN BE:
+
+        1) DIRECTORY CONTAINING MANY PDFS OR TEXT FILES
+        2) PATH ABSOLUTE OF A SIGLE PDF OR TXT FILE
+        3) ENCODED FILE IN BASE64 FORMAT
 
     # Arguments
-        input_pdf_path              - Required : Caminho do arquivo a ser lido (String)
+        dir_file          - Required : File path (Path | String)
+        dir_save_txt      - Optional : Path to save the file
+                                       with the textual result (String)
+        name_save_txt     - Optional : Name to save the file
+                                       with the textual result (String)
 
     # Returns
-        text                        - Required : Texto do PDF enviado (String)
+        text              - Required : Text result (String)
 
 """
 
 __version__ = "1.0"
-__author__ = """Emerson V. Rafael (EMERVIN)"""
-__data_atualizacao__ = "23/08/2023"
+__author__ = """Emerson V. Rafael (emersonrafaels) & Naomi Lago (naomilago)"""
+__organization__ = "labelease"
+__data_atualizacao__ = "29/08/2023"
 
 import io
 from os import path
 from pathlib import Path
 from inspect import stack
+from typing import Union
 
 from extract_pdf_text.config_project import config_project
+
+from pydantic import validate_arguments, ValidationError
+from loguru import logger
 
 from dynaconf import settings
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
@@ -34,7 +44,7 @@ from pdfminer.converter import TextConverter
 from pdfminer.layout import LAParams
 from pdfminer.pdfpage import PDFPage
 
-from src.utils.generic_functions import create_path, verify_path
+from extract_pdf_text.utils.generic_functions import save_text_result
 
 
 class Extract_PDF_Text:
@@ -58,28 +68,30 @@ class Extract_PDF_Text:
 
     def __init__(self):
 
-        # 1 - LISTA DE TODOS OS TIPOS DE FORMATOS DE ARQUIVOS ACEITOS PARA EXTRAÇÃO DE TEXTO
-        self.list_file_formats_accepted = settings.get(
+        # 1- LIST OF ALL EXTENSIONS TYPES ACCEPTED BY THE MICROSSERVICE
+        self.list_file_extensions_accepted = settings.get(
             "EXTRACT_PDF_FEATURE.LIST_FORMAT_ACCEPTED", []
         )
 
-        # 2 - DEFININDO O LOCAL DEFAULT DE SAVE DOS TXTS
+        # 2 - GET THE DEFAULT PATH TO SAVE THE TEXT RESULT
         self.dir_save_default = settings.get(
             "EXTRACT_PDF_FEATURE.DIR_SAVE_RESULT", "extract_text_result"
         )
 
-        # 3 - DEFININDO O NOME DEFAULT DE SAVE DOS TXTS
+        # 3 - GET THE DEFAULT NAMEFILE TO SAVE THE TEXT RESULT
         self.name_save_default = settings.get(
             "EXTRACT_PDF_FEATURE.NAME_SAVE_RESULT", "result.txt"
         )
 
-    def validate_pdf(self, filename):
+    def validate_file_extension(self, filename):
 
         """
 
-        FUNÇÃO VERIFICADORA SE O ARQUIVO ENVIADO É DO TIPO PDF.
+        VERIFICA SE O ARQUIVO ENVIADO É ACEITO PELA CLASSE.
 
-        RETORNA TRUE CASO O ARQUIVO ENVIADO SEJA PDF.
+        RETORNA TRUE CASO O ARQUIVO ENVIADO POSSUA
+        EXTENSÃO DENTRE AS EXTENSÕES ACEITAS
+        ('self.list_file_formats_accepted').
 
         # Arguments
             filename            - Required : Caminho do arquivo a
@@ -100,12 +112,12 @@ class Extract_PDF_Text:
             file_format = Path(filename).suffix
 
             # VERIFICANDO SE O FORMATO DO ARQUIVO É ACEITO
-            if file_format in self.list_file_formats_accepted:
+            if file_format in self.list_file_extensions_accepted:
 
                 validador = True
 
         except Exception as ex:
-            print("ERRO NA FUNÇÃO {} - {}".format(stack()[0][3], ex))
+            print("FUNCTION ERROR {} - {}".format(stack()[0][3], ex))
 
         return validador, file_format
 
@@ -124,44 +136,6 @@ class Extract_PDF_Text:
 
         return path_save_txt
 
-    def save_txt(self, text, path_save_txt, nome_save_txt=None):
-
-        """
-
-        FUNÇÃO PARA ESCREVER/SALVAR O ARQUIVO TEXTO.
-
-        # Arguments
-            path_save_txt              - Required : Diretório do arquivo a ser escrito (String)
-            text                       - Required : Texto que será escrito (String)
-
-        # Returns
-            validador                  - Required : Validador de execução da função (Boolean)
-
-        """
-
-        # INICIANDO O VALIDADOR DA FUNÇÃO
-        validador = False
-
-        # VERIFICANDO SE O PATH EXISTE
-        validador_path = verify_path(text, path_save_txt, nome_save_txt)
-
-        if not validador_path:
-            validador = create_path(text, path_save_txt, nome_save_txt)
-
-            if validador:
-
-                # REALIZANDO A ABERTURA DO ARQUIVO (MESMO QUE NÃO EXISTENTE)
-                with open(path_save_txt, "w", encoding="utf-8") as text_file:
-
-                    try:
-                        text_file.write(text)
-
-                        validador = True
-
-                    except Exception as ex:
-                        print("ERRO NA FUNÇÃO {} - {}".format(stack()[0][3], ex))
-
-        return validador
 
     @staticmethod
     def read_txt(path_txt):
@@ -184,24 +158,23 @@ class Extract_PDF_Text:
                 text = text_file.read()
 
         except Exception as ex:
-            print("ERRO NA FUNÇÃO {} - {}".format(stack()[0][3], ex))
+            print("FUNCTION ERROR {} - {}".format(stack()[0][3], ex))
 
         return text
 
     @staticmethod
-    def convert_pdf_to_text(fname, pages=None):
+    def convert_pdf_to_text(fname, pages: int = None):
 
         """
 
-        FUNÇÃO PARA CONVERTER PDF EM TEXTO.
+        FUNCTION TO GET TEXT FROM A PDF FILE
 
         # Arguments
-            fname                      - Required : Nome do arquivo (String)
-            pages                      - Required : Página específica para
-                                                    se fazer a leitura (Int)
+            fname                 - Required : Filename (Path | String)
+            pages                 - Required : Init page to get the text (Int)
 
         # Returns
-            text                       - Required : Texto extraído do arquivo (String)
+            text                  - Required : Result text (String)
 
         """
 
@@ -214,24 +187,24 @@ class Extract_PDF_Text:
         try:
             output = io.StringIO()
 
-            # ARMAZENA RECURSOS COMPARTILHADOS
+            # INSTANCE PDF RESOURCE MANAGER
             manager = PDFResourceManager()
 
-            # CONFIGURA A VARIÁVEL DE AUXÍLIO NA CONVERSÃO
+            # CONFIGURE THE TEXT CONVERTER
             converter = TextConverter(manager, output, laparams=LAParams())
 
-            # PROCESSA O CONTEÚDO DA PÁGINA
+            # INTERPRET THE PAGE
             interpreter = PDFPageInterpreter(manager, converter)
 
-            # ABRINDO O ARQUIVO
+            # OPENING THE FILE
             infile = open(fname, "rb")
 
-            # ITERA CADA PÁGINA DO PDF E REALIZA A CONVERSÃO
+            # ITERATE ON EACH PAGE AND DO THE CONVERSION
             for page in PDFPage.get_pages(infile, pagenums):
                 interpreter.process_page(page)
 
         except Exception as ex:
-            print("ERRO NA FUNÇÃO {} - {}".format(stack()[0][3], ex))
+            print("FUNCTION ERROR {} - {}".format(stack()[0][3], ex))
 
         finally:
             infile.close()
@@ -239,62 +212,74 @@ class Extract_PDF_Text:
             converter.close()
 
         try:
-            # ARMAZENA O TEXTO EXTRAÍDO DO PDF
+            # STORAGE THE TEXT RESULT
             text = output.getvalue()
 
         except Exception as ex:
-            print("ERRO NA FUNÇÃO {} - {}".format(stack()[0][3], ex))
+            print("FUNCTION ERROR {} - {}".format(stack()[0][3], ex))
 
         finally:
             output.close()
 
         return text
 
-    def orchestra_extract_text(self, dir_arq, dir_save_txt=None, name_save_txt=None):
+    @validate_arguments
+    def orchestra_extract_text(self,
+                               dir_file: Union[Path, str],
+                               dir_save_txt: str = None,
+                               name_save_txt: str = None):
 
         """
 
-        FUNÇÃO ORQUESTRADORA DE CONVERSÃO DE PDF PARA ARQUIVO TEXTO.
+        MAIN FUNCTION - ORCHESTRA THE MICROSERVICE
 
         # Arguments
-            dir_arq           - Required : Diretório do arquivo recebido (Path)
-            dir_save_txt      - Optional : Diretório para salvar
-                                           o arquivo txt (String)
-            name_save_txt     - Optional : Nome para salvar o arquivo (String)
+            dir_file          - Required: File path (Path | String)
+            dir_save_txt      - Optional: Path to save the file
+                                          with the textual result (String)
+            name_save_txt     - Optional: Name to save the file
+                                          with the textual result (String)
 
         # Returns
-            text              - Required : Texto extraído do arquivo (String)
+            text              - Required: Text result (String)
 
         """
 
+        # INIT RETURN VALUES
+        validator = False
+        text = ""
+
         # VALIDANDO SE O ARQUIVO ENVIADO É UM PDF
-        validator, extension = Extract_PDF_Text.validate_pdf(self, dir_arq)
+        validator, extension = Extract_PDF_Text.validate_file_extension(self,
+                                                                        filename=dir_file)
 
         if validator:
 
-            if extension in [".pdf"]:
+            if extension in ["pdf", ".pdf"]:
 
                 try:
-                    # LEITURA: ARQUIVO PDF
-                    text = Extract_PDF_Text.convert_pdf_to_text(dir_arq)
+                    # READ: PDF FILE
+                    text = Extract_PDF_Text.convert_pdf_to_text(dir_file)
                 except PDFTextExtractionNotAllowed:
-                    print("NÃO FOI POSSÍVEL EXTRAIR PDFTextExtractionNotAllowed")
+                    logger.error("NOT WAS POSSIBLE TO EXTRACT - PDFTextExtractionNotAllowed")
                 except PDFSyntaxError:
-                    print("NÃO FOI POSSÍVEL EXTRAIR PDFSyntaxError")
+                    logger.error("NOT WAS POSSIBLE TO EXTRACT - PDFSyntaxError")
                 except Exception as ex:
-                    print("NÃO FOI POSSÍVEL EXTRAIR: {}".format(str(ex)))
+                    logger.error("NOT WAS POSSIBLE TO EXTRACT - {}".format(str(ex)))
 
-            elif extension in [".txt"]:
-                # LEITURA: ARQUIVO TXT
-                text = Extract_PDF_Text.read_txt(dir_arq)
+            elif extension in ["txt", ".txt"]:
+                # READ: TXT FILE
+                text = Extract_PDF_Text.read_txt(dir_file)
 
-            # SALVANDO O TEXTO EM ARQUIVO TXT
-            validator = Extract_PDF_Text.save_txt(self, dir_save_txt, text)
+            # SAVE THE RESULT TEXT IN A TXT FILE
+            validator = save_text_result(path_save=self.dir_save_default,
+                                         name_save=self.name_save_default,
+                                         text=text)
 
         else:
             raise (
-                "O ARQUIVO TEM UMA EXTENSÃO NÃO ACEITA PELO MICROSSERVIÇO\nFORMATOS ACEITOS: {}".format(
-                    self.list_file_formats_accepted
+                "THE FILE HAVE A EXTENSION NOT ACCEPTED BY THE MICROSSERVICE\nACCEPTED EXTENSIONS ARE: {}".format(
+                    self.list_file_extensions_accepted
                 )
             )
 

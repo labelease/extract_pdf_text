@@ -1,52 +1,109 @@
 from os import path, makedirs
+from pathlib import Path
+from typing import Union
 from inspect import stack
 
+from pydantic import validate_arguments, ValidationError
+from loguru import logger
 
-def create_path(dir):
+@validate_arguments
+def create_path(dir: Union[Path, str]):
 
     """
 
-    FUNÇÃO PARA CRIAR UM PATH;
+    FUNCTION TO CREATE A PATH
 
     # Arguments
-            dir                      - Required : Diretório a ser criado (String)
+        dir                      - Required: Directory to create (Path | String)
 
     # Returns
-            validador                - Required : Validador de execução da função (Boolean)
+        validator                - Required: Function validator (Boolean)
 
     """
 
     # INICIANDO O VALIDADOR DA FUNÇÃO
-    validador = False
+    validator = False
 
     try:
-        makedirs(dir)
+        makedirs(str(dir))
+
+        validator = True
     except Exception as ex:
-        print("ERRO NA FUNÇÃO {} - {}".format(stack()[0][3], ex))
+        print("FUNCTION ERROR {} - {}".format(stack()[0][3], ex))
 
-    return validador
+    return validator
 
 
-def verify_path(dir):
+@validate_arguments
+def verify_path(dir: Union[Path, str]):
 
     """
 
-    FUNÇÃO PARA VERIFICAR SE UM DIRETÓRIO (PATH) EXISTE.
+    FUNCTION TO VERIFY IF A DIRECTORY (PATH) EXISTS.
 
     # Arguments
-            dir                      - Required : Diretório a ser verificado (String)
+        dir                      - Required: Directory to verify (Path | String)
 
     # Returns
-            validador                - Required : Validador de execução da função (Boolean)
+        validator                - Required: Function validator (Boolean)
 
     """
 
     # INICIANDO O VALIDADOR DA FUNÇÃO
-    validador = False
+    validator = False
 
     try:
-        validador = path.exists(dir)
+        validator = path.exists(str(dir))
     except Exception as ex:
-        print("ERRO NA FUNÇÃO {} - {}".format(stack()[0][3], ex))
+        print("FUNCTION ERROR {} - {}".format(stack()[0][3], ex))
 
-    return validador
+    return validator
+
+
+@validate_arguments
+def save_text_result(path_save: Union[Path, str],
+                     name_save: str,
+                     text: str):
+
+    """
+
+        SAVING THE RESULT TEXT
+
+        # Arguments
+            path_save       - Required: Directory to save the file (Path | String)
+            name_save       - Required: Name to save the file
+                                        with the textual result (String)
+            text            - Required: Text result (String)
+
+        # Returns
+            validator       - Required: Function validator (Boolean)
+
+    """
+
+    # DIR TO SAVE
+    dir_save = str(Path(path_save).absolute())
+    dir_name_save = str(Path(path_save, name_save).absolute())
+
+    # VERIFY IF DIR EXISTS
+    validator = verify_path(dir=dir_save)
+
+    if not validator:
+        validador = create_path(dir=dir_save)
+
+        if validador:
+
+            # REALIZANDO A ABERTURA DO ARQUIVO (MESMO QUE NÃO EXISTENTE)
+            with open(dir_name_save, "w", encoding="utf-8") as text_file:
+
+                try:
+                    text_file.write(text)
+
+                    validator = True
+
+                except Exception as ex:
+                    print("FUNCTION ERROR {} - {}".format(stack()[0][3], ex))
+
+        else:
+            logger.error("ITS NOT POSSIBLE TO CREATE THE DIR: {}".format(dir_save))
+
+    return validator
