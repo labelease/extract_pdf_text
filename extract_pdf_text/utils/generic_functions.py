@@ -89,23 +89,23 @@ def save_text_result(path_save: Union[Path, str],
     validator = verify_path(dir=dir_save)
 
     if not validator:
-        validador = create_path(dir=dir_save)
+        validator = create_path(dir=dir_save)
 
-        if validador:
+    if validator:
 
-            # REALIZANDO A ABERTURA DO ARQUIVO (MESMO QUE NÃO EXISTENTE)
-            with open(dir_name_save, "w", encoding=settings.get("ENCODING_DEFAULT",
-                                                                "utf-8")) as text_file:
+        # REALIZANDO A ABERTURA DO ARQUIVO (MESMO QUE NÃO EXISTENTE)
+        with open(dir_name_save, "w", encoding=settings.get("ENCODING_DEFAULT",
+                                                            "utf-8")) as text_file:
 
-                try:
-                    text_file.write(text)
+            try:
+                text_file.write(text)
 
-                    validator = True
+                validator = True
 
-                except Exception as ex:
-                    print("FUNCTION ERROR {} - {}".format(stack()[0][3], ex))
+            except Exception as ex:
+                print("FUNCTION ERROR {} - {}".format(stack()[0][3], ex))
 
-        else:
-            logger.error("ITS NOT POSSIBLE TO CREATE THE DIR: {}".format(dir_save))
+    else:
+        logger.error("ITS NOT POSSIBLE TO CREATE THE DIR: {}".format(dir_save))
 
     return validator

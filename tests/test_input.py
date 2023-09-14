@@ -47,4 +47,4 @@ def test_input_txt_success():
 	assert result[0] == True
 
 if __name__ == '__main__':
-	test_input_txt_success()
+	test_input_pdf_success()
