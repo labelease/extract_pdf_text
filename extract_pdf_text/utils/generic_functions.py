@@ -7,6 +7,9 @@ from dynaconf import settings
 from pydantic import validate_arguments, ValidationError
 from loguru import logger
 
+# DEFININDO O DIR ROOT
+dir_root = Path(__file__).parent.parent.parent
+
 @validate_arguments
 def create_path(dir: Union[Path, str]):
 
@@ -82,8 +85,8 @@ def save_text_result(path_save: Union[Path, str],
     """
 
     # DIR TO SAVE
-    dir_save = str(Path(path_save).absolute())
-    dir_name_save = str(Path(path_save, name_save).absolute())
+    dir_save = str(Path(dir_root, path_save).absolute())
+    dir_name_save = str(Path(dir_save, name_save).absolute())
 
     # VERIFY IF DIR EXISTS
     validator = verify_path(dir=dir_save)
