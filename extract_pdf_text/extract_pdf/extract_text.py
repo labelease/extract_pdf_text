@@ -138,7 +138,8 @@ class Extract_PDF_Text:
 
 
     @staticmethod
-    def read_txt(path_txt):
+    @validate_arguments
+    def read_txt(path_txt: Union[Path, str]):
 
         """
 
@@ -152,15 +153,22 @@ class Extract_PDF_Text:
 
         """
 
+        # INIT RETURN VARIABLE
+        validator = False
+        text = ""
+
         try:
-            with open(path_txt, "r") as text_file:
+            with open(str(path_txt), "r", encoding=settings.get("ENCODING_DEFAULT",
+                                                                "utf-8")) as text_file:
 
                 text = text_file.read()
+
+                validator = True
 
         except Exception as ex:
             print("FUNCTION ERROR {} - {}".format(stack()[0][3], ex))
 
-        return text
+        return validator, text
 
     @staticmethod
     def convert_pdf_to_text(fname, pages: int = None):
@@ -177,6 +185,10 @@ class Extract_PDF_Text:
             text                  - Required : Result text (String)
 
         """
+
+        # INIT RETURN VARIABLE
+        validator = False
+        text = ""
 
         # VERIFICA SE HÁ UMA PÁGINA ESPECÍFICA PARA EXTRAIR
         if not pages:
@@ -215,13 +227,15 @@ class Extract_PDF_Text:
             # STORAGE THE TEXT RESULT
             text = output.getvalue()
 
+            validator = True
+
         except Exception as ex:
             print("FUNCTION ERROR {} - {}".format(stack()[0][3], ex))
 
         finally:
             output.close()
 
-        return text
+        return validator, text
 
     @validate_arguments
     def orchestra_extract_text(self,
@@ -259,7 +273,7 @@ class Extract_PDF_Text:
 
                 try:
                     # READ: PDF FILE
-                    text = Extract_PDF_Text.convert_pdf_to_text(dir_file)
+                    validator, text = Extract_PDF_Text.convert_pdf_to_text(dir_file)
                 except PDFTextExtractionNotAllowed:
                     logger.error("NOT WAS POSSIBLE TO EXTRACT - PDFTextExtractionNotAllowed")
                 except PDFSyntaxError:
@@ -269,12 +283,14 @@ class Extract_PDF_Text:
 
             elif extension in ["txt", ".txt"]:
                 # READ: TXT FILE
-                text = Extract_PDF_Text.read_txt(dir_file)
+                validator, text = Extract_PDF_Text.read_txt(dir_file)
 
-            # SAVE THE RESULT TEXT IN A TXT FILE
-            validator = save_text_result(path_save=self.dir_save_default,
-                                         name_save=self.name_save_default,
-                                         text=text)
+            if validator:
+
+                # SAVE THE RESULT TEXT IN A TXT FILE
+                validator = save_text_result(path_save=self.dir_save_default,
+                                             name_save=self.name_save_default,
+                                             text=text)
 
         else:
             raise (

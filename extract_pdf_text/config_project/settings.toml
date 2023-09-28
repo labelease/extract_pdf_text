@@ -1,5 +1,7 @@
 [default]
 
+ENCODING_DEFAULT = "utf-8"
+
 [default.EXTRACT_PDF_FEATURE]
 LIST_FORMAT_ACCEPTED = [".pdf", ".txt"]
 DIR_SAVE_RESULT = "extract_text_result"
